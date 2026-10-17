@@ -16,6 +16,52 @@ const roles=(...allowed)=>(req,res,next)=>allowed.includes(req.session.user.role
 const schemaValidate=(schema,body)=>{const result=schema.safeParse(body);if(!result.success){const e=new Error(result.error.issues.map(x=>x.path.join('.')+': '+x.message).join('; '));e.status=400;throw e;}return result.data;};
 const ss=z.string().trim(),opt=z.union([ss,z.literal(''),z.null()]).optional(),email=z.string().trim().email().max(254),str=(len)=>ss.min(1).max(len);
 const skillCategories=['Data Center Engineers','Hardware Break-Fix Technicians','Network Engineers','Fiber & Structured Cabling Technicians','Desktop / EUC Engineers','Retail IT & POS Technicians','IT Rollout & IMAC Technicians','Wireless & Telecom Engineers','IT Asset & Decommissioning Specialists','Server & Storage Specialists','IT Infrastructure Project Managers','Field Service Coordinators'];
+/* Rackelto hostname routing */
+app.use((req, res, next) => {
+  const host = (req.hostname || '').toLowerCase();
+  const route = req.path;
+
+  const isPartners = host === 'partners.rackeltotechnologies.com';
+  const isAdmin = host === 'admin.rackeltotechnologies.com';
+
+  // Keep the corporate website unchanged.
+  if (!isPartners && !isAdmin) return next();
+
+  // Shared static files and health endpoint.
+  if (
+    route.startsWith('/assets/') ||
+    route === '/favicon.ico' ||
+    route === '/api/health'
+  ) return next();
+
+  if (isPartners) {
+    if (route === '/') return res.redirect(302, '/partner-network.html');
+
+    if (
+      route === '/partners' ||
+      route === '/partner-network.html' ||
+      route.startsWith('/api/public/') ||
+      route === '/api/auth/csrf'
+    ) return next();
+
+    return res.status(404).send('Not found');
+  }
+
+  if (isAdmin) {
+    if (route === '/') return res.redirect(302, '/admin.html');
+
+    if (
+      route === '/admin' ||
+      route === '/admin.html' ||
+      route.startsWith('/api/auth/') ||
+      route.startsWith('/api/admin/')
+    ) return next();
+
+    return res.status(404).send('Not found');
+  }
+
+  next();
+});
 app.get('/api/public/categories',(_req,res)=>ok(res,skillCategories));
 app.get('/api/health',wrap(async(_req,res)=>{await query('SELECT 1 AS value');ok(res,{status:'healthy'})}));
 app.get('/api/auth/csrf', (req,res)=>{if(!req.session.csrf)req.session.csrf=crypto.randomBytes(32).toString('hex');ok(res,{token:req.session.csrf});});
