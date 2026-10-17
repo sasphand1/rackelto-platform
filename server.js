@@ -16,51 +16,37 @@ const roles=(...allowed)=>(req,res,next)=>allowed.includes(req.session.user.role
 const schemaValidate=(schema,body)=>{const result=schema.safeParse(body);if(!result.success){const e=new Error(result.error.issues.map(x=>x.path.join('.')+': '+x.message).join('; '));e.status=400;throw e;}return result.data;};
 const ss=z.string().trim(),opt=z.union([ss,z.literal(''),z.null()]).optional(),email=z.string().trim().email().max(254),str=(len)=>ss.min(1).max(len);
 const skillCategories=['Data Center Engineers','Hardware Break-Fix Technicians','Network Engineers','Fiber & Structured Cabling Technicians','Desktop / EUC Engineers','Retail IT & POS Technicians','IT Rollout & IMAC Technicians','Wireless & Telecom Engineers','IT Asset & Decommissioning Specialists','Server & Storage Specialists','IT Infrastructure Project Managers','Field Service Coordinators'];
-/* Rackelto hostname routing */
+/* Rackelto portal isolation */
 app.use((req, res, next) => {
-  const host = (req.hostname || '').toLowerCase();
-  const route = req.path;
+  const role = process.env.APP_ROLE || 'corporate';
+  const url = req.path;
 
-  const isPartners = process.env.APP_ROLE === 'partners' || (process.env.APP_ROLE !== 'admin' && host === 'partners.rackeltotechnologies.com');
-  const isAdmin = process.env.APP_ROLE === 'admin' || (process.env.APP_ROLE !== 'partners' && host === 'admin.rackeltotechnologies.com');
+  if (role === 'corporate') return next();
 
-  // Keep the corporate website unchanged.
-  if (!isPartners && !isAdmin) return next();
+  if (url.startsWith('/assets/') || url === '/favicon.ico' ||
+      url === '/api/health') return next();
 
-  // Shared static files and health endpoint.
-  if (
-    route.startsWith('/assets/') ||
-    route === '/favicon.ico' ||
-    route === '/api/health'
-  ) return next();
+  if (role === 'partners') {
+    if (url === '/') return res.redirect(302, '/partner-network.html');
 
-  if (isPartners) {
-    if (route === '/') return res.redirect(302, '/partner-network.html');
-
-    if (
-      route === '/partners' ||
-      route === '/partner-network.html' ||
-      route.startsWith('/api/public/') ||
-      route === '/api/auth/csrf'
-    ) return next();
+    if (url === '/partner-network.html' || url === '/partners' ||
+        url === '/api/auth/csrf' ||
+        url.startsWith('/api/public/')) return next();
 
     return res.status(404).send('Not found');
   }
 
-  if (isAdmin) {
-    if (route === '/') return res.redirect(302, '/admin.html');
+  if (role === 'admin') {
+    if (url === '/') return res.redirect(302, '/admin.html');
 
-    if (
-      route === '/admin' ||
-      route === '/admin.html' ||
-      route.startsWith('/api/auth/') ||
-      route.startsWith('/api/admin/')
-    ) return next();
+    if (url === '/admin.html' || url === '/admin' ||
+        url.startsWith('/api/auth/') ||
+        url.startsWith('/api/admin/')) return next();
 
     return res.status(404).send('Not found');
   }
 
-  next();
+  return res.status(503).send('Invalid application configuration');
 });
 app.get('/api/public/categories',(_req,res)=>ok(res,skillCategories));
 app.get('/api/health',wrap(async(_req,res)=>{await query('SELECT 1 AS value');ok(res,{status:'healthy'})}));
