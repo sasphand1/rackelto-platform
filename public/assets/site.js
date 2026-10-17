@@ -40,4 +40,9 @@ async function send(form,url,msg,make){const btn=form.querySelector('button[type
 function initPartner(){let f=document.querySelector('#partnerForm');f.addEventListener('submit',e=>{e.preventDefault();let skills=[...f.querySelectorAll('[name="skills"]:checked')].map(x=>x.value);if(!skills.length)return alert('Select at least one technical category');send(f,'/api/public/partners',document.querySelector('#partnerMsg'),d=>{let obj=Object.fromEntries(d.entries());obj.skills=skills;obj.consent=d.has('consent');['travel_radius_km','experience_years','hourly_rate'].forEach(k=>obj[k]=obj[k]?Number(obj[k]):null);return obj})})}
 function initEnquiry(){let f=document.querySelector('#enquiryForm');f.addEventListener('submit',e=>{e.preventDefault();send(f,'/api/public/enquiries',document.querySelector('#enquiryMsg'),d=>Object.fromEntries(d.entries()))})}
 boot();
+if (location.hostname === 'partners.rackeltotechnologies.com') {
+  document.querySelector('#site-header').innerHTML =
+    '<header class="site-header"><div class="shell navbar"><a class="brand" href="/"><span class="brand-symbol">R</span><span class="brand-type">RACKELTO<small>TECHNOLOGIES</small></span></a></div></header>';
+  document.querySelector('#site-footer').innerHTML = '';
+}
 
