@@ -1,0 +1,5 @@
+const test=require('node:test'),assert=require('node:assert/strict'),fs=require('fs'),path=require('path'),{spawnSync}=require('node:child_process');
+const root=path.join(__dirname,'..');
+test('All 12 website HTML pages exist',()=>{const names=['index','about','infrastructure-deployment','hardware-support','network-connectivity','workplace-services','rollouts-imac','retail-distributed','managed-field-operations','industries','partner-network','contact'];names.forEach(n=>assert.ok(fs.existsSync(path.join(root,'public',n+'.html')),n))});
+test('Primary JavaScript syntax checks',()=>{for(const f of ['server.js','public/assets/site.js','public/assets/admin.js','scripts/setup-db.js']){const r=spawnSync(process.execPath,['--check',path.join(root,f)]);assert.equal(r.status,0,r.stderr.toString())}});
+test('Database entities are present',()=>{let sql=fs.readFileSync(path.join(root,'db/schema.sql'),'utf8');for(const t of ['users','partners','enquiries','customers','projects','work_orders','activity_log','sessions'])assert.match(sql,new RegExp('CREATE TABLE IF NOT EXISTS '+t+'\\b'))});
