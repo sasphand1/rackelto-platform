@@ -54,5 +54,5 @@ app.get('/api/admin/activity',wrap(async(req,res)=>ok(res,await query('SELECT a.
 app.use(express.static(path.join(__dirname,'public'),{extensions:['html'],index:'index.html',dotfiles:'deny'}));
 app.use('/api',(req,res)=>res.status(404).json({error:'Not found'}));
 app.use((err,req,res,next)=>{console.error(err);res.status(err.status||((err.code==='ER_NO_REFERENCED_ROW_2'||err.code==='ER_DUP_ENTRY')?400:500)).json({error:(err.status||err.code==='ER_NO_REFERENCED_ROW_2'||err.code==='ER_DUP_ENTRY')?err.message:'The request could not be completed'})});
-const PORT=Number(process.env.PORT)||3000;if(require.main===module)app.listen(PORT,()=>console.log('Rackelto running: http://localhost:'+PORT));module.exports={app,skillCategories};
+const PORT=Number(process.env.PORT)||3000;app.listen(PORT,()=>console.log('Rackelto running: http://localhost:'+PORT));module.exports={app,skillCategories};
 
