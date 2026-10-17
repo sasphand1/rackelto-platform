@@ -21,8 +21,8 @@ app.use((req, res, next) => {
   const host = (req.hostname || '').toLowerCase();
   const route = req.path;
 
-  const isPartners = host === 'partners.rackeltotechnologies.com';
-  const isAdmin = host === 'admin.rackeltotechnologies.com';
+  const isPartners = process.env.APP_ROLE === 'partners' || (process.env.APP_ROLE !== 'admin' && host === 'partners.rackeltotechnologies.com');
+  const isAdmin = process.env.APP_ROLE === 'admin' || (process.env.APP_ROLE !== 'partners' && host === 'admin.rackeltotechnologies.com');
 
   // Keep the corporate website unchanged.
   if (!isPartners && !isAdmin) return next();
