@@ -5,3 +5,16 @@
 *.log
 .DS_Store
 .vscode/
+
+.env1
+.env
+.env.*
+!.env.example
+mail-update-backup-*/
+*.bak
+*.zip
+INSTALL.txt
+MAIL_SETUP_AND_DEPLOY.txt
+README-DEPLOY.txt
+README.txt
+public/assets/images/industries/new.png

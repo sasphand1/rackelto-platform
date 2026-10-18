@@ -136,7 +136,7 @@ function initPartner(){
   const success=await send(f,'/api/public/partners',document.querySelector('#partnerMsg'),d=>({
    type:d.get('type'),full_name:d.get('full_name').trim(),email:d.get('email').trim(),
    phone:d.get('phone')||'',whatsapp:d.get('phone')||'',country:d.get('country').trim(),city:d.get('city').trim(),
-   skills:canonical,notes:details.join('\n'),availability:d.get('availability')||'',consent:d.has('consent'),
+   skills:canonical,selected_labels:selectedLabels,notes:details.join('\n'),availability:d.get('availability')||'',consent:d.has('consent'),
    currency:'EUR',hourly_rate:null,website:d.get('website')||''
   }));
   if(success)update();
