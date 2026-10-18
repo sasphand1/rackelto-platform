@@ -293,3 +293,7 @@ p{line-height:1.65}
 
 /* Scoped About page styling — does not modify forms, registration, navigation or other pages. */
 .rackelto-about-page .about-hero-image{overflow:hidden;background:#eaf2f9}.rackelto-about-page .about-hero-image img{display:block;width:100%;height:100%;object-fit:cover;object-position:center}.rackelto-about-story{max-width:960px}.rackelto-about-story h2{font-size:clamp(1.7rem,2.6vw,2.25rem);margin-bottom:23px}.rackelto-about-story>p:not(.eyebrow){font-size:15.5px;line-height:1.8;max-width:850px;margin:0 0 17px}.rackelto-about-story>p:last-child{margin-bottom:0}
+
+/* Admin work-order row actions: prevent collision at desktop and mobile widths. */
+.admin-layout .wo-actions{display:flex;flex-wrap:wrap;align-items:center;gap:7px;min-width:0}
+.admin-layout .wo-actions .btn{margin:0;flex:0 0 auto;white-space:nowrap;line-height:1.35}
