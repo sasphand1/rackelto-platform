@@ -6,16 +6,6 @@ app.disable('x-powered-by');if(process.env.TRUST_PROXY==='1')app.set('trust prox
 app.use(helmet({contentSecurityPolicy:{directives:{defaultSrc:["'self'"],scriptSrc:["'self'"],styleSrc:["'self'"],imgSrc:["'self'","data:"],connectSrc:["'self'"],fontSrc:["'self'"],objectSrc:["'none'"],upgradeInsecureRequests:process.env.NODE_ENV==='production'?[]:null}}}));
 app.use(express.json({limit:'100kb'}));app.use(express.urlencoded({extended:false,limit:'100kb'}));
 class DbSessionStore extends session.Store {get(sid,cb){query('SELECT session_json FROM sessions WHERE sid=? AND expires_at>NOW()',[sid]).then(r=>{if(!r.length)return cb(null,null);try{cb(null,JSON.parse(r[0].session_json));}catch(e){cb(e);}}).catch(cb);}set(sid,s,cb){let expiry=s.cookie?.expires?new Date(s.cookie.expires):new Date(Date.now()+8*3600e3);query('INSERT INTO sessions(sid,expires_at,session_json) VALUES(?,?,?) ON DUPLICATE KEY UPDATE expires_at=VALUES(expires_at),session_json=VALUES(session_json)',[sid,expiry,JSON.stringify(s)]).then(()=>cb?.()).catch(e=>cb?.(e));}destroy(sid,cb){query('DELETE FROM sessions WHERE sid=?',[sid]).then(()=>cb?.()).catch(e=>cb?.(e));}touch(sid,s,cb){let expiry=s.cookie?.expires?new Date(s.cookie.expires):new Date(Date.now()+8*3600e3);query('UPDATE sessions SET expires_at=? WHERE sid=?',[expiry,sid]).then(()=>cb?.()).catch(e=>cb?.(e));}}
-app.use(session({name:'rackelto.sid',store:new DbSessionStore(),secret:process.env.SESSION_SECRET||'dev-only-secret-change-before-public-deployment',resave:false,saveUninitialized:false,rolling:true,cookie:{httpOnly:true,secure:process.env.NODE_ENV==='production',sameSite:'lax',maxAge:8*3600*1000}}));
-const limiter=rateLimit({windowMs:15*60*1000,limit:80,standardHeaders:'draft-7',legacyHeaders:false});
-app.use('/api/public',limiter);app.use('/api/auth',rateLimit({windowMs:15*60*1000,limit:100,standardHeaders:'draft-7',legacyHeaders:false}));
-const wrap=fn=>(req,res,next)=>Promise.resolve(fn(req,res,next)).catch(next);
-const ok=(res,data,status=200)=>res.status(status).json({ok:true,data});
-const required=(req,res,next)=>req.session.user?next():res.status(401).json({error:'Login required'});
-const roles=(...allowed)=>(req,res,next)=>allowed.includes(req.session.user.role)?next():res.status(403).json({error:'Insufficient permissions'});
-const schemaValidate=(schema,body)=>{const result=schema.safeParse(body);if(!result.success){const e=new Error(result.error.issues.map(x=>x.path.join('.')+': '+x.message).join('; '));e.status=400;throw e;}return result.data;};
-const ss=z.string().trim(),opt=z.union([ss,z.literal(''),z.null()]).optional(),email=z.string().trim().email().max(254),str=(len)=>ss.min(1).max(len);
-const skillCategories=['Data Center Engineers','Hardware Break-Fix Technicians','Network Engineers','Fiber & Structured Cabling Technicians','Desktop / EUC Engineers','Retail IT & POS Technicians','IT Rollout & IMAC Technicians','Wireless & Telecom Engineers','IT Asset & Decommissioning Specialists','Server & Storage Specialists','IT Infrastructure Project Managers','Field Service Coordinators'];
 /* Rackelto portal isolation */
 app.use((req, res, next) => {
   const role = process.env.APP_ROLE || 'corporate';
@@ -48,6 +38,16 @@ app.use((req, res, next) => {
 
   return res.status(503).send('Invalid application configuration');
 });
+app.use(session({name:'rackelto.sid',store:new DbSessionStore(),secret:process.env.SESSION_SECRET||'dev-only-secret-change-before-public-deployment',resave:false,saveUninitialized:false,rolling:true,cookie:{httpOnly:true,secure:process.env.NODE_ENV==='production',sameSite:'lax',maxAge:8*3600*1000}}));
+const limiter=rateLimit({windowMs:15*60*1000,limit:80,standardHeaders:'draft-7',legacyHeaders:false});
+app.use('/api/public',limiter);app.use('/api/auth',rateLimit({windowMs:15*60*1000,limit:100,standardHeaders:'draft-7',legacyHeaders:false}));
+const wrap=fn=>(req,res,next)=>Promise.resolve(fn(req,res,next)).catch(next);
+const ok=(res,data,status=200)=>res.status(status).json({ok:true,data});
+const required=(req,res,next)=>req.session.user?next():res.status(401).json({error:'Login required'});
+const roles=(...allowed)=>(req,res,next)=>allowed.includes(req.session.user.role)?next():res.status(403).json({error:'Insufficient permissions'});
+const schemaValidate=(schema,body)=>{const result=schema.safeParse(body);if(!result.success){const e=new Error(result.error.issues.map(x=>x.path.join('.')+': '+x.message).join('; '));e.status=400;throw e;}return result.data;};
+const ss=z.string().trim(),opt=z.union([ss,z.literal(''),z.null()]).optional(),email=z.string().trim().email().max(254),str=(len)=>ss.min(1).max(len);
+const skillCategories=['Data Center Engineers','Hardware Break-Fix Technicians','Network Engineers','Fiber & Structured Cabling Technicians','Desktop / EUC Engineers','Retail IT & POS Technicians','IT Rollout & IMAC Technicians','Wireless & Telecom Engineers','IT Asset & Decommissioning Specialists','Server & Storage Specialists','IT Infrastructure Project Managers','Field Service Coordinators'];
 app.get('/api/public/categories',(_req,res)=>ok(res,skillCategories));
 app.get('/api/health',wrap(async(_req,res)=>{await query('SELECT 1 AS value');ok(res,{status:'healthy'})}));
 app.get('/api/auth/csrf', (req,res)=>{if(!req.session.csrf)req.session.csrf=crypto.randomBytes(32).toString('hex');ok(res,{token:req.session.csrf});});

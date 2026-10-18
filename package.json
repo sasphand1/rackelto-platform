@@ -1,28 +1,29 @@
-{
-  "name": "rackelto-platform",
-  "version": "1.0.0",
-  "private": true,
-  "description": "Rackelto Technologies corporate site, partner portal and operations dashboard",
-  "scripts": {
-    "start": "node server.js",
-    "dev": "node --watch server.js",
-    "test": "node --test tests/*.test.js",
-    "db:setup": "node scripts/setup-db.js",
-    "build:corporate": "node scripts/prepare-deployment.js",
-    "build:partners": "node scripts/prepare-deployment.js",
-    "build:admin": "node scripts/prepare-deployment.js"
-  },
-  "engines": {
-    "node": ">=20"
-  },
-  "dependencies": {
-    "bcryptjs": "^2.4.3",
-    "dotenv": "^16.4.7",
-    "express": "^4.21.2",
-    "express-rate-limit": "^7.5.0",
-    "express-session": "^1.18.1",
-    "helmet": "^8.0.0",
-    "mysql2": "^3.12.0",
-    "zod": "^3.24.2"
-  }
+﻿{
+    "name":  "rackelto-platform",
+    "version":  "1.0.0",
+    "private":  true,
+    "description":  "Rackelto Technologies corporate site, partner portal and operations dashboard",
+    "scripts":  {
+                    "start":  "node server.js",
+                    "dev":  "node --watch server.js",
+                    "test":  "node --test tests/*.test.js",
+                    "db:setup":  "node scripts/setup-db.js",
+                    "build:corporate":  "node scripts/prepare-deployment.js corporate",
+                    "build:partners":  "node scripts/prepare-deployment.js partners",
+                    "build:admin":  "node scripts/prepare-deployment.js admin",
+                    "postinstall":  "node scripts/prepare-deployment.js --from-env"
+                },
+    "engines":  {
+                    "node":  "\u003e=20"
+                },
+    "dependencies":  {
+                         "bcryptjs":  "^2.4.3",
+                         "dotenv":  "^16.4.7",
+                         "express":  "^4.21.2",
+                         "express-rate-limit":  "^7.5.0",
+                         "express-session":  "^1.18.1",
+                         "helmet":  "^8.0.0",
+                         "mysql2":  "^3.12.0",
+                         "zod":  "^3.24.2"
+                     }
 }
