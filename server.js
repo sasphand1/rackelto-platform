@@ -61,9 +61,12 @@ app.post('/api/auth/logout',required,(req,res)=>req.session.destroy(err=>{if(err
 app.get('/api/auth/me',(req,res)=>ok(res,{user:req.session.user||null,csrf:req.session.csrf||null}));
 const audit=async(req,entity,id,action,detail='')=>{await query('INSERT INTO activity_log(actor_user_id,entity_type,entity_id,action,detail) VALUES(?,?,?,?,?)',[req.session.user.id,entity,id,action,detail]);};
 app.use('/api/admin',required);
-const imsReadiness=require('./ims/migrate').readiness({getConnection:()=>getPool().getConnection()});
+const imsReadiness=require('./ims/migrate').readiness({getConnection:()=>getPool().getConnection()},console,'core');
+const complianceReadiness=require('./ims/migrate').readiness({getConnection:()=>getPool().getConnection()});
 app.use('/api/admin/ims',roles('admin','manager'),wrap(async(req,res,next)=>{if(!await imsReadiness.ensure())return res.status(503).json({error:'Document repository initialization unavailable. Check server logs for IMS schema initialization.'});next();}),express.json({limit:'7mb'}));
 require('./ims/routes')(app,{query,getPool,wrap,ok,roles,schemaValidate});
+app.use('/api/admin/ims/compliance',wrap(async(req,res,next)=>{if(!await complianceReadiness.ensure())return res.status(503).json({error:'Compliance schema initialization unavailable. Check server logs.'});next();}));
+require('./ims/compliance')(app,{query,getPool,wrap,ok,schemaValidate});
 const paging=req=>({limit:Math.min(Math.max(parseInt(req.query.limit,10)||30,1),100),offset:Math.max(parseInt(req.query.offset,10)||0,0)});
 app.get('/api/admin/overview',wrap(async(req,res)=>{const [p,c,proj,w,enq,activity]=await Promise.all([query('SELECT status,COUNT(*) AS n FROM partners GROUP BY status'),query('SELECT COUNT(*) AS n FROM customers'),query('SELECT status,COUNT(*) AS n FROM projects GROUP BY status'),query('SELECT status,COUNT(*) AS n FROM work_orders GROUP BY status'),query("SELECT COUNT(*) AS n FROM enquiries WHERE status='new'"),query('SELECT entity_type,entity_id,action,created_at FROM activity_log ORDER BY id DESC LIMIT 12')]);ok(res,{partners:p,customers:c[0].n,projects:proj,work_orders:w,new_enquiries:enq[0].n,activity})}));
 app.get('/api/admin/partners',wrap(async(req,res)=>{const {limit,offset}=paging(req);const clauses=[],vals=[];if(req.query.status){clauses.push('status=?');vals.push(req.query.status)}if(req.query.country){clauses.push('country=?');vals.push(req.query.country)}if(req.query.q){clauses.push('(full_name LIKE ? OR city LIKE ? OR email LIKE ? OR company_name LIKE ?)');const q='%'+req.query.q.slice(0,80)+'%';vals.push(q,q,q,q)}if(req.query.skill){clauses.push('JSON_CONTAINS(skills,JSON_QUOTE(?))');vals.push(req.query.skill)}const where=clauses.length?' WHERE '+clauses.join(' AND '):'';const rows=await query('SELECT * FROM partners'+where+' ORDER BY id DESC LIMIT '+limit+' OFFSET '+offset,vals);ok(res,rows.map(r=>({...r,skills:typeof r.skills==='string'?JSON.parse(r.skills):r.skills})))}));
@@ -111,5 +114,5 @@ app.get('/admin', (req, res) => {
 app.use(express.static(path.join(__dirname,'public'),{extensions:['html'],index:'index.html',dotfiles:'deny'}));
 app.use('/api',(req,res)=>res.status(404).json({error:'Not found'}));
 app.use((err,req,res,next)=>{console.error(err);res.status(err.status||((err.code==='ER_NO_REFERENCED_ROW_2'||err.code==='ER_DUP_ENTRY')?400:500)).json({error:(err.status||err.code==='ER_NO_REFERENCED_ROW_2'||err.code==='ER_DUP_ENTRY')?err.message:'The request could not be completed'})});
-const PORT=Number(process.env.PORT)||3000;app.listen(PORT,()=>console.log('Rackelto running: http://localhost:'+PORT));emailOutbox.startWorker();if((process.env.APP_ROLE||'corporate')==='admin')void imsReadiness.ensure();module.exports={app,skillCategories};
+const PORT=Number(process.env.PORT)||3000;app.listen(PORT,()=>console.log('Rackelto running: http://localhost:'+PORT));emailOutbox.startWorker();if((process.env.APP_ROLE||'corporate')==='admin')void imsReadiness.ensure().then(ready=>{if(ready)return complianceReadiness.ensure();});module.exports={app,skillCategories};
 
