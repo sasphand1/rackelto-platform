@@ -1,4 +1,4 @@
-﻿name: Rackelto CI
+name: Rackelto CI
 on:
   pull_request:
   push:
@@ -7,7 +7,7 @@ on:
 permissions:
   contents: read
 jobs:
-  quality-gate:
+  integration-browser:
     runs-on: ubuntu-24.04
     timeout-minutes: 20
     services:
@@ -42,12 +42,6 @@ jobs:
           cache: npm
       - run: npm ci
       - run: mkdir -p reports
-      - name: Unit and regression tests
-        run: |
-          set -o pipefail
-          node --test --experimental-test-coverage tests/*.test.js | tee reports/unit.txt
-      - name: Dependency audit (report only until existing findings resolved)
-        run: npm audit --json > reports/npm-audit.json || true
       - name: Install browser test tooling
         run: |
           npm install --no-save --package-lock=false --ignore-scripts playwright@1.56.1
@@ -56,6 +50,43 @@ jobs:
         run: |
           set -o pipefail
           node --test tests/ci/live.test.js | tee reports/integration.txt
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: rackelto-integration-${{ github.sha }}
+          path: reports/
+          retention-days: 30
+  unit-regression:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: npm
+      - run: npm ci
+      - run: mkdir -p reports
+      - name: Unit and regression tests
+        run: |
+          set -o pipefail
+          node --test --experimental-test-coverage tests/*.test.js | tee reports/unit.txt
+      - name: Dependency audit (report only until existing findings resolved)
+        run: npm audit --json > reports/npm-audit.json || true
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: rackelto-unit-${{ github.sha }}
+          path: reports/
+  packaging:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: npm
+      - run: npm ci
+      - run: mkdir -p reports
       - name: Deployment packaging checks
         run: |
           set -o pipefail
@@ -63,7 +94,16 @@ jobs:
       - uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: rackelto-ci-${{ github.sha }}
+          name: rackelto-packaging-${{ github.sha }}
           path: reports/
-          retention-days: 30
-
+  quality-gate:
+    runs-on: ubuntu-24.04
+    needs: [unit-regression, integration-browser, packaging]
+    if: ${{ always() }}
+    steps:
+      - name: Verify required jobs
+        env:
+          UNIT: ${{ needs.unit-regression.result }}
+          LIVE: ${{ needs.integration-browser.result }}
+          PACKAGE: ${{ needs.packaging.result }}
+        run: test "$UNIT" = success && test "$LIVE" = success && test "$PACKAGE" = success
