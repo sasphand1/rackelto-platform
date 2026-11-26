@@ -112,8 +112,9 @@ app.get('/partners', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'partner-network.html'));
 });
 
-app.get('/admin', (req, res) => {
-  res.sendFile(path.join(__dirname, 'public', 'admin.html'));
+app.get(['/admin', '/admin.html'], (req, res) => {
+  res.set('Cache-Control', 'no-store, max-age=0');
+  res.sendFile(path.join(__dirname, 'public', 'admin.html'), {cacheControl:false});
 });
 app.use(express.static(path.join(__dirname,'public'),{extensions:['html'],index:'index.html',dotfiles:'deny'}));
 app.use('/api',(req,res)=>res.status(404).json({error:'Not found'}));
