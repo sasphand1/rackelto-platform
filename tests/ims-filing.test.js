@@ -1,0 +1,5 @@
+const test=require('node:test'),assert=require('node:assert/strict'),{access}=require('../ims/filing-policy');const f=[{id:1,parent_id:null,restricted:1},{id:2,parent_id:1,restricted:0},{id:3,parent_id:2,restricted:1}],u={id:5,role:'manager'},a={id:1,role:'admin'};
+test('restricted parent denies even unrestricted child',()=>assert.equal(access(f,[],u,2),false));
+test('read grants do not allow writes',()=>{const g=[{folder_id:1,user_id:5,permission:'read'}];assert.equal(access(f,g,u,2),true);assert.equal(access(f,g,u,2,true),false);assert.equal(access(f,g,u,3),false);});
+test('write requires grant at every restricted ancestor',()=>{const g=[{folder_id:1,user_id:5,permission:'write'},{folder_id:3,user_id:5,permission:'write'}];assert.equal(access(f,g,u,3,true),true);assert.equal(access(f,g,{id:6,role:'manager'},3),false);});
+test('admin can access valid tree, invalid paths fail closed',()=>{assert.equal(access(f,[],a,3,true),true);assert.equal(access(f,[],a,999),false);assert.equal(access([{id:1,parent_id:1}],[],a,1),false);});
