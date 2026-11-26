@@ -1,0 +1,10 @@
+const test=require('node:test'),assert=require('node:assert/strict'),crypto=require('node:crypto'),fs=require('node:fs'),{spawnSync}=require('node:child_process');
+const {payload,transition,MAX}=require('../ims/contracts');
+const b64=x=>Buffer.from(x).toString('base64');
+test('document payload preserves bytes and computes hash',()=>{const p=payload('policy.txt',b64('test policy'));assert.equal(p.content.toString(),'test policy');assert.equal(p.sha256,crypto.createHash('sha256').update('test policy').digest('hex'));});
+test('reject invalid filename, unsupported format and invalid signature',()=>{for(const [n,d] of [['../x.txt','x'],['x.exe','x'],['x.pdf','not PDF'],['x.docx','not zip']])assert.throws(()=>payload(n,b64(d)));});
+test('reject invalid and noncanonical base64',()=>{for(const x of ['a','!!!!','Zh==','====',''])assert.throws(()=>payload('p.txt',x));});
+test('maximum supported document size and oversize rejection',()=>{assert.equal(payload('p.txt',Buffer.alloc(MAX,65).toString('base64')).bytes,MAX);assert.throws(()=>payload('p.txt',Buffer.alloc(MAX+1,65).toString('base64')));});
+test('controlled lifecycle rejects bypass and mutation of approved version',()=>{assert.equal(transition('draft','submit'),'review');assert.equal(transition('review','approve'),'approved');assert.equal(transition('review','reject'),'rejected');for(const [s,a] of [['draft','approve'],['approved','reject'],['superseded','submit'],['rejected','approve']])assert.throws(()=>transition(s,a),{status:409});});
+test('IMS schema is additive and includes event records',()=>{const sql=fs.readFileSync('db/migrations/003_ims_core.sql','utf8');for(const n of ['ims_documents','ims_document_versions','ims_events'])assert.ok(sql.includes('CREATE TABLE IF NOT EXISTS '+n));assert.doesNotMatch(sql,/DROP TABLE|TRUNCATE TABLE/i);});
+test('new JavaScript files parse',()=>{for(const f of ['ims/contracts.js','ims/routes.js','scripts/migrate-ims.js','public/assets/ims.js']){const r=spawnSync(process.execPath,['--check',f]);assert.equal(r.status,0,r.stderr.toString());}});
