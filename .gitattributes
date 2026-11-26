@@ -1,0 +1,16 @@
+# Deterministic admin content hashes across Windows and Linux
+public/admin.html text eol=lf
+public/assets/style.css text eol=lf
+public/assets/style.*.css text eol=lf
+public/assets/ims.css text eol=lf
+public/assets/ims.*.css text eol=lf
+public/assets/admin.js text eol=lf
+public/assets/admin.*.js text eol=lf
+public/assets/ims.js text eol=lf
+public/assets/ims.*.js text eol=lf
+public/assets/compliance.js text eol=lf
+public/assets/compliance.*.js text eol=lf
+public/assets/assurance.js text eol=lf
+public/assets/assurance.*.js text eol=lf
+public/assets/filing.js text eol=lf
+public/assets/filing.*.js text eol=lf

@@ -109,3 +109,15 @@ jobs:
           LIVE: ${{ needs.integration-browser.result }}
           PACKAGE: ${{ needs.packaging.result }}
         run: test "$UNIT" = success && test "$LIVE" = success && test "$PACKAGE" = success
+  production-smoke:
+    if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' }}
+    needs: quality-gate
+    runs-on: ubuntu-24.04
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: Verify actual Hostinger release assets
+        run: node scripts/verify-admin-deployment.js --retry

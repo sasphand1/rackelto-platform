@@ -4,14 +4,6 @@ test('not applicable requires rationale without inventing evidence',()=>{assert.
 test('closure requires evidence and rationale',()=>{assert.throws(()=>close('closed','done',false));assert.throws(()=>close('closed','',true));assert.doesNotThrow(()=>close('closed','verified',true));});
 test('governance record types cover key risk areas',()=>{for(const k of ['risk','incident','environmental_aspect','supplier_assessment','ai_governance','corrective_action','continuity','safety'])assert.ok(kinds.includes(k));});
 test('B schema is additive and references controlled versions',()=>{const s=fs.readFileSync('db/migrations/004_ims_compliance.sql','utf8');assert.equal((s.match(/CREATE TABLE IF NOT EXISTS/g)||[]).length,2);assert.doesNotMatch(s,/DROP TABLE|TRUNCATE|DELETE FROM/i);assert.match(s,/REFERENCES ims_document_versions/);});
-test('admin and backend wiring present',()=>{assert.match(fs.readFileSync('server.js','utf8'),/require\('\.\/ims\/compliance'\)/);const html = fs.readFileSync('public/admin.html','utf8');
-for (const asset of ['style.css','ims.css','admin.js','ims.js','compliance.js','assurance.js','filing.js']) {
-    const dot = asset.lastIndexOf('.');
-    const source = fs.readFileSync('public/assets/'+asset);
-    const hash = require('node:crypto').createHash('sha256').update(source).digest('hex').slice(0,12);
-    const versioned = asset.slice(0,dot)+'.'+hash+asset.slice(dot);
-    assert.ok(html.includes('/assets/'+versioned), 'Missing versioned reference: '+asset);
-    assert.deepEqual(fs.readFileSync('public/assets/'+versioned), source);
-}});
+test('admin and backend wiring present',()=>{assert.match(fs.readFileSync('server.js','utf8'),/require\('\.\/ims\/compliance'\)/);require('../scripts/admin-assets').verify();});
 test('new frontend and backend scripts parse',()=>{for(const f of ['ims/compliance.js','ims/compliance-contracts.js','public/assets/compliance.js','public/assets/admin.js','server.js','ims/migrate.js']){const r=require('node:child_process').spawnSync(process.execPath,['--check',f]);assert.equal(r.status,0,r.stderr.toString());}});
 test('dashboard charts use CSP-compatible native progress',()=>{const s=fs.readFileSync('public/assets/compliance.js','utf8');assert.match(s,/<progress class="pipe-track"/);assert.doesNotMatch(s,/style="width:/);});
