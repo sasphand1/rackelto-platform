@@ -1,0 +1,69 @@
+﻿name: Rackelto CI
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  quality-gate:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    services:
+      mysql:
+        image: mysql:8.0
+        env:
+          MYSQL_ROOT_PASSWORD: ci_root_only
+          MYSQL_DATABASE: rackelto_ci
+          MYSQL_USER: rackelto_ci
+          MYSQL_PASSWORD: ci_db_only
+        ports: ['3306:3306']
+        options: --health-cmd="mysqladmin ping -h 127.0.0.1 --silent" --health-interval=5s --health-timeout=5s --health-retries=20
+    env:
+      NODE_ENV: test
+      APP_ROLE: corporate
+      PORT: 3100
+      DB_HOST: 127.0.0.1
+      DB_PORT: 3306
+      DB_NAME: rackelto_ci
+      DB_USER: rackelto_ci
+      DB_PASSWORD: ci_db_only
+      ADMIN_EMAIL: admin@example.invalid
+      ADMIN_PASSWORD: CI-only-password-2026
+      SESSION_SECRET: ci-only-not-a-production-secret-123456
+      MAIL_ENABLED: 'false'
+      MAIL_NOTIFY_TO: ''
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: npm
+      - run: npm ci
+      - run: mkdir -p reports
+      - name: Unit and regression tests
+        run: |
+          set -o pipefail
+          node --test --experimental-test-coverage tests/*.test.js | tee reports/unit.txt
+      - name: Dependency audit (report only until existing findings resolved)
+        run: npm audit --json > reports/npm-audit.json || true
+      - name: Install browser test tooling
+        run: |
+          npm install --no-save --package-lock=false --ignore-scripts playwright@1.56.1
+          npx playwright install --with-deps chromium
+      - name: Real database, API and browser tests
+        run: |
+          set -o pipefail
+          node --test tests/ci/live.test.js | tee reports/integration.txt
+      - name: Deployment packaging checks
+        run: |
+          set -o pipefail
+          node --test tests/ci/packaging.test.js | tee reports/packaging.txt
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: rackelto-ci-${{ github.sha }}
+          path: reports/
+          retention-days: 30
+
