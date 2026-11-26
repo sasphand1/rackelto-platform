@@ -4,3 +4,4 @@
 
 progress.pipe-track{width:100%;border:0;appearance:none;color:#42617a}progress.pipe-track::-webkit-progress-bar{background:#e5edf3;border-radius:6px}progress.pipe-track::-webkit-progress-value{background:#42617a;border-radius:6px}progress.pipe-track::-moz-progress-bar{background:#42617a;border-radius:6px}
 .ims-admin .nav-group-label{color:#b9d1df;font-size:.68rem;text-transform:uppercase;letter-spacing:.12em;margin:18px 12px 6px}.ims-admin .sidebar button{padding-top:10px;padding-bottom:10px;margin-bottom:2px}.ims-admin .sidebar{overflow-y:auto}.ims-admin .sidebar button[data-tab=compliance],.ims-admin .sidebar button[data-tab=governance]{border-top:0}
+.filing-layout{display:grid;grid-template-columns:minmax(200px,1fr) minmax(0,3fr);gap:16px;margin-top:16px}.filing-node{margin:6px 0 6px 10px}.filing-node .btn{white-space:normal;text-align:left;max-width:100%}.filing-layout input{max-width:240px}@media(max-width:850px){.filing-layout{grid-template-columns:1fr}}
