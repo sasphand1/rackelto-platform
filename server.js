@@ -40,6 +40,7 @@ app.use((req, res, next) => {
 });
 app.use(session({name:'rackelto.sid',store:new DbSessionStore(),secret:process.env.SESSION_SECRET||'dev-only-secret-change-before-public-deployment',resave:false,saveUninitialized:false,rolling:true,cookie:{httpOnly:true,secure:process.env.NODE_ENV==='production',sameSite:'lax',maxAge:8*3600*1000}}));
 const limiter=rateLimit({windowMs:15*60*1000,limit:80,standardHeaders:'draft-7',legacyHeaders:false});
+app.use('/api',(_req,res,next)=>{res.set('Cache-Control','no-store');next();});
 app.use('/api/public',limiter);app.use('/api/auth',rateLimit({windowMs:15*60*1000,limit:100,standardHeaders:'draft-7',legacyHeaders:false}));
 const wrap=fn=>(req,res,next)=>Promise.resolve(fn(req,res,next)).catch(next);
 const ok=(res,data,status=200)=>res.status(status).json({ok:true,data});

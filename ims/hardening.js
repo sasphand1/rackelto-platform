@@ -1,0 +1,8 @@
+'use strict';
+const {spawn}=require('node:child_process');
+const {fail}=require('./contracts');
+// clamdscan/ clamscan must be installed by the operator. Fail closed when enabled.
+async function scan(content,{mode=process.env.IMS_SCAN_MODE||'off',command=process.env.IMS_CLAMSCAN||'clamscan'}={}){if(mode==='off')return 'not_scanned';if(mode!=='required')fail('Invalid malware scanning configuration',503);return new Promise((resolve,reject)=>{const p=spawn(command,['--no-summary','-'],{stdio:['pipe','ignore','ignore'],shell:false});let settled=false;const finish=(e,v)=>{if(settled)return;settled=true;clearTimeout(timer);e?reject(e):resolve(v);};const error=(message,status)=>Object.assign(Error(message),{status});const timer=setTimeout(()=>{p.kill('SIGKILL');finish(error('Malware scanner timeout',503));},30000);p.on('error',()=>finish(error('Malware scanner unavailable',503)));p.stdin.on('error',()=>{});p.on('close',code=>code===0?finish(null,'clean'):finish(error(code===1?'Unsafe upload rejected':'Malware scanner failed',code===1?422:503)));p.stdin.end(content);});}
+const folders=['Corporate Governance','Quality Management','Environmental Management','Information Security','Supplier Management','Operational Procedures','Customer Contracts','Financial Records','Audit and Assurance','Business Continuity','Health and Safety','ESG and Sustainability','Software Validation','Archive'];
+function missingFolders(existing){const names=new Set(existing.filter(f=>f.parent_id==null).map(f=>f.name.toLowerCase()));return folders.filter(n=>!names.has(n.toLowerCase()));}
+module.exports={scan,missingFolders};
